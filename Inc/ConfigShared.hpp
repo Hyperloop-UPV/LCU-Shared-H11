@@ -4,14 +4,15 @@
 #include "FrameShared.hpp"
 #include "LPUShared.hpp"
 #include "AirgapShared.hpp"
+#include "CommunicationsShared.hpp"
 
 
 // ============================================
 // Frame Definitions
 // ============================================
 
-using Downlink = std::tuple<LPUBase>; // Example usage
-using Uplink = std::tuple<LPUBase, AirgapBase>;   // Example usage
+using Downlink = std::tuple<CommunicationsBase, LPUBase>; // Example usage
+using Uplink = std::tuple<CommunicationsBase, LPUBase, AirgapBase>;   // Example usage
 
 template <bool IsMaster>
 using SystemFrame = DuplexFrame<IsMaster, Downlink, Uplink>;
