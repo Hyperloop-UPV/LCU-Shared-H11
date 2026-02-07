@@ -74,8 +74,11 @@ public:
         if constexpr (RxNodeCount > 0) initDirection<false>(rx_parts...);
     }
 
-    static void update() { 
+    static void update_tx() { 
         if constexpr (TxNodeCount > 0) MDMA::transfer_list(reinterpret_cast<MDMA::LinkedListNode*>(&tx_node_storage[0]));
+    }
+
+    static void update_rx() { 
         if constexpr (RxNodeCount > 0) MDMA::transfer_list(reinterpret_cast<MDMA::LinkedListNode*>(&rx_node_storage[0]));
     }
 
