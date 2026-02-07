@@ -9,7 +9,7 @@
 // ============================================
 
 using Downlink = std::tuple<LPUBase>; // Example usage
-using Uplink = std::tuple<LPUBase, LPUBase>;
+using Uplink = std::tuple<LPUBase>;   // Example usage
 
 template <bool IsMaster>
 using SystemFrame = DuplexFrame<IsMaster, Downlink, Uplink>;

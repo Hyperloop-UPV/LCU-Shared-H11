@@ -111,7 +111,7 @@ private:
         (processObject(parts), ...);
         
         // Terminate the linked list
-        if (node_idx > 0) {             // FIX: Use pointer instead of reference to handle different array sizes
+        if (node_idx > 0) {
              NodeWrapper* storage = IsTx ? tx_node_storage : rx_node_storage;
              reinterpret_cast<MDMA::LinkedListNode*>(&storage[node_idx - 1])->set_next(nullptr);
         }
