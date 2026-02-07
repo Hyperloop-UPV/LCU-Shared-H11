@@ -2,6 +2,8 @@
 #define CONFIG_SHARED_HPP
 
 #include "FrameShared.hpp"
+#include "LPUShared.hpp"
+#include "AirgapShared.hpp"
 
 
 // ============================================
@@ -9,7 +11,7 @@
 // ============================================
 
 using Downlink = std::tuple<LPUBase>; // Example usage
-using Uplink = std::tuple<LPUBase>;   // Example usage
+using Uplink = std::tuple<LPUBase, AirgapBase>;   // Example usage
 
 template <bool IsMaster>
 using SystemFrame = DuplexFrame<IsMaster, Downlink, Uplink>;
