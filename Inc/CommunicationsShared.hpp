@@ -56,10 +56,10 @@ constexpr StatusFlags operator&(StatusFlags a, StatusFlags b) {
 // ============================================
 
 struct CommandPacket {
-    CommandFlags commands;        // Bitmask of commands
-    float gap_reference;          // Desired gap for levitation (mm)
-    float current_limit;          // Max current limit (A)
-    uint32_t timestamp_ms;        // Master timestamp for synchronization
+    volatile CommandFlags commands;        // Bitmask of commands
+    volatile float gap_reference;          // Desired gap for levitation (mm)
+    volatile float current_limit;          // Max current limit (A)
+    volatile uint32_t timestamp_ms;        // Master timestamp for synchronization
     
     CommandPacket() 
         : commands(CommandFlags::NONE)
@@ -74,11 +74,11 @@ struct CommandPacket {
 // ============================================
 
 struct StatusPacket {
-    StatusFlags status;           // Bitmask of status flags
-    uint8_t system_state;         // SystemStates enum value
-    uint8_t control_state;        // ControlStates enum value
-    uint16_t error_code;          // Detailed error code if fault
-    uint32_t timestamp_ms;        // Slave timestamp
+    volatile StatusFlags status;           // Bitmask of status flags
+    volatile uint8_t system_state;         // SystemStates enum value
+    volatile uint8_t control_state;        // ControlStates enum value
+    volatile uint16_t error_code;          // Detailed error code if fault
+    volatile uint32_t timestamp_ms;        // Slave timestamp
     
     StatusPacket() 
         : status(StatusFlags::NONE)
@@ -103,8 +103,8 @@ public:
         return std::make_tuple(&status_packet);
     }
     
-    CommandPacket command_packet;
-    StatusPacket status_packet;
+    volatile CommandPacket command_packet;
+    volatile StatusPacket status_packet;
 };
 
 #endif // COMMUNICATIONS_SHARED_HPP

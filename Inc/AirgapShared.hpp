@@ -5,7 +5,7 @@
 
 class AirgapBase {
    protected:
-    float airgap_v = 0.0f;
+    volatile float airgap_v = 0.0f;
 
    public:
     auto getUpLinkLayout() {
