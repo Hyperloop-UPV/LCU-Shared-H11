@@ -4,10 +4,9 @@
 #include "C++Utilities/CppImports.hpp"
 
 class AirgapBase {
-   protected:
-    volatile float airgap_v = 0.0f;
-
    public:
+    float airgap_v = 0.0f;
+
     auto getUpLinkLayout() {
         return std::make_tuple(&airgap_v); 
     }

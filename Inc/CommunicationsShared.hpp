@@ -10,6 +10,7 @@
 enum class OrderID : uint16_t {
     NONE            = 0,
     LEVITATE        = 9000,
+    STOP_LEVITATE = 9001,
     CURRENT_CONTROL = 9100,
     START_PWM       = 9101,
     STOP_PWM        = 9102
@@ -22,9 +23,10 @@ enum class OrderID : uint16_t {
 enum class CommandFlags : uint16_t {
     NONE            = 0,
     LEVITATE        = 1 << 0,
-    CURRENT_CONTROL = 1 << 1,
-    START_PWM       = 1 << 2,
-    STOP_PWM        = 1 << 3
+    STOP_LEVITATE   = 1 << 1,
+    CURRENT_CONTROL = 1 << 2,
+    START_PWM       = 1 << 3,
+    STOP_PWM        = 1 << 4
 };
 
 // Bitwise operators for CommandFlags
