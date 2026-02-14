@@ -47,6 +47,10 @@ constexpr CommandFlags operator~(CommandFlags a) {
 // ============================================
 
 struct CommandPacket {
+    static constexpr uint16_t START_BYTE = 0xABCD;
+    static constexpr uint16_t END_BYTE = 0xDCBA;
+
+    volatile uint16_t start_byte;
     volatile CommandFlags commands;        // Bitmask of commands
     
     // Levitation Parameters (ID 9000)
@@ -64,10 +68,11 @@ struct CommandPacket {
     // Stop PWM Parameters (ID 9102)
     volatile uint8_t stop_pwm_lpu_id;
 
-    volatile uint32_t timestamp_ms;        // Master timestamp
+    volatile uint16_t end_byte;
     
     CommandPacket() 
-        : commands(CommandFlags::NONE)
+        : start_byte(START_BYTE)
+        , commands(CommandFlags::NONE)
         , desired_distance(0.0f)
         , desired_current(0.0f)
         , current_control_lpu_id(0)
@@ -75,7 +80,7 @@ struct CommandPacket {
         , pwm_duty_cycle(0.0f)
         , start_pwm_lpu_id(0)
         , stop_pwm_lpu_id(0)
-        , timestamp_ms(0)
+        , end_byte(END_BYTE)
     {}
 };
 
@@ -84,18 +89,24 @@ struct CommandPacket {
 // ============================================
 
 struct StatusPacket {
+    static constexpr uint16_t START_BYTE = 0xABCD;
+    static constexpr uint16_t END_BYTE = 0xDCBA;
+
+    volatile uint16_t start_byte;
     volatile CommandFlags acks;            // Bitmask of acknowledgements (mirrors commands)
     volatile uint8_t system_state;         // SystemStates enum value
     volatile uint8_t control_state;        // ControlStates enum value
     volatile uint16_t error_code;          // Detailed error code if fault
-    volatile uint32_t timestamp_ms;        // Slave timestamp
+
+    volatile uint16_t end_byte;
     
     StatusPacket() 
-        : acks(CommandFlags::NONE)
+        : start_byte(START_BYTE)
+        , acks(CommandFlags::NONE)
         , system_state(0)
         , control_state(0)
         , error_code(0)
-        , timestamp_ms(0)
+        , end_byte(END_BYTE)
     {}
 };
 
