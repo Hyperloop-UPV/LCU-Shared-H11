@@ -76,7 +76,7 @@ struct CommandPacket {
         , flags(CommandFlags::NONE)
         , levitate{0.0f}
         , current_control{0.0f, 0}
-        , pwm{0.0f, 0.0f, 0}
+        , pwm{0, 0.0f, 0}
         , fixed_vbat{0.0f}
         , end_byte(END_BYTE)
     {}
