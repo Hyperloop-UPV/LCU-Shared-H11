@@ -135,6 +135,9 @@ public:
                 flag = CommandFlags::LEVITATE; 
                 command_packet.desired_distance = arg1;
                 break;
+            case OrderID::STOP_LEVITATE:
+                flag = CommandFlags::STOP_LEVITATE; 
+                break;
             case OrderID::CURRENT_CONTROL: 
                 flag = CommandFlags::CURRENT_CONTROL; 
                 command_packet.desired_current = arg1;

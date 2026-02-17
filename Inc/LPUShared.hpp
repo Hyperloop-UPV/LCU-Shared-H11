@@ -21,11 +21,11 @@ class LPUBase {
         return std::make_tuple(&vbat_v, &shunt_v, &state); 
     }
 
-    float vbat_v = 0.0f;
-    float shunt_v = 0.0f;
-    bool fault = false;
-    bool ready = true;
-    State state = State::Idle;
+    volatile float vbat_v = 0.0f;
+    volatile float shunt_v = 0.0f;
+    volatile bool fault = false;
+    volatile bool ready = true;
+    volatile State state = State::Idle;
 };
 
 #endif // LPU_SHARED_HPP
