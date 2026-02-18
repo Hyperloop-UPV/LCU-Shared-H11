@@ -121,8 +121,8 @@ public:
         return std::make_tuple(&status_packet);
     }
     
-    CommandPacket command_packet;
-    StatusPacket status_packet;
+    volatile CommandPacket command_packet;
+    volatile StatusPacket status_packet;
 };
 
 #endif // COMMUNICATIONS_SHARED_HPP
