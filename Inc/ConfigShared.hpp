@@ -17,8 +17,7 @@ using Uplink = std::tuple<CommunicationsBase, LPUBase, AirgapBase>;
 
 #elif defined(USE_5_DOF)
 using Downlink = std::tuple<CommunicationsBase,
-                            LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase,
-                            AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase>;
+                            LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase>;
 using Uplink = std::tuple<CommunicationsBase,
                           LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase,
                           AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase>;
