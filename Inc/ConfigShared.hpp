@@ -5,14 +5,24 @@
 #include "LPUShared.hpp"
 #include "AirgapShared.hpp"
 #include "CommunicationsShared.hpp"
+#include "FlagsShared.hpp"
 
 
 // ============================================
 // Frame Definitions
 // ============================================
+#ifdef USE_1_DOF
+using Downlink = std::tuple<CommunicationsBase, LPUBase>;
+using Uplink = std::tuple<CommunicationsBase, LPUBase, AirgapBase>;
 
-using Downlink = std::tuple<CommunicationsBase, LPUBase>; // Example usage
-using Uplink = std::tuple<CommunicationsBase, LPUBase, AirgapBase>;   // Example usage
+#elif defined(USE_5_DOF)
+using Downlink = std::tuple<CommunicationsBase,
+                            LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase,
+                            AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase>;
+using Uplink = std::tuple<CommunicationsBase,
+                          LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase,
+                          AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase>;
+#endif
 
 template <bool IsMaster>
 using SystemFrame = DuplexFrame<IsMaster, Downlink, Uplink>;
