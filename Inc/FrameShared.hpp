@@ -18,6 +18,63 @@ consteval size_t layout_count_v() {
     }(std::type_identity<Tuple>{});
 }
 
+// ============================================
+// Compile-Time Tuple Filtering Utilities
+// ============================================
+
+namespace detail {
+    // Concatenate tuples
+    template<typename... Tuples>
+    struct tuple_concat;
+    
+    template<>
+    struct tuple_concat<> {
+        using type = std::tuple<>;
+    };
+    
+    template<typename... T>
+    struct tuple_concat<std::tuple<T...>> {
+        using type = std::tuple<T...>;
+    };
+    
+    template<typename... T1, typename... T2, typename... Rest>
+    struct tuple_concat<std::tuple<T1...>, std::tuple<T2...>, Rest...> {
+        using type = typename tuple_concat<std::tuple<T1..., T2...>, Rest...>::type;
+    };
+    
+    template<typename... Tuples>
+    using tuple_concat_t = typename tuple_concat<Tuples...>::type;
+}
+
+// Filter tuple based on predicate
+template<typename Tuple, template<typename> typename Predicate>
+struct FilterTuple;
+
+template<typename... Types, template<typename> typename Predicate>
+struct FilterTuple<std::tuple<Types...>, Predicate> {
+    using type = detail::tuple_concat_t<
+        std::conditional_t<Predicate<Types>::value, std::tuple<Types>, std::tuple<>>...
+    >;
+};
+
+template<typename Tuple, template<typename> typename Predicate>
+using FilterTuple_t = typename FilterTuple<Tuple, Predicate>::type;
+
+// Method existence detection
+template<typename T>
+struct HasDownLinkMethod : std::false_type {};
+
+template<typename T>
+    requires requires(T t) { t.getDownLinkLayout(); }
+struct HasDownLinkMethod<T> : std::true_type {};
+
+template<typename T>
+struct HasUpLinkMethod : std::false_type {};
+
+template<typename T>
+    requires requires(T t) { t.getUpLinkLayout(); }
+struct HasUpLinkMethod<T> : std::true_type {};
+
 template <bool IsMaster, typename TxTuple, typename RxTuple>
 class Frame;
 
@@ -25,20 +82,22 @@ template <bool IsMaster, typename... TxSyncables, typename... RxSyncables>
 class Frame<IsMaster, std::tuple<TxSyncables...>, std::tuple<RxSyncables...>> {
 public:
     // ===========================================
+    // Frame Protocol Constants
+    // ===========================================
+    static constexpr uint8_t START_BYTE = 0xAB;
+    static constexpr uint8_t END_BYTE = 0xCD;
+
+    // ===========================================
     // 1. Compile-Time Deduction
     // ===========================================
+    // Note: TxSyncables are already filtered to have getDownLinkLayout()
+    //       RxSyncables are already filtered to have getUpLinkLayout()
 
     template <typename T>
-    using TxLayoutT = std::conditional_t<IsMaster,
-        decltype(std::declval<T>().getDownLinkLayout()), 
-        decltype(std::declval<T>().getUpLinkLayout())
-    >;
+    using TxLayoutT = decltype(std::declval<T>().getDownLinkLayout());
 
     template <typename T>
-    using RxLayoutT = std::conditional_t<IsMaster, 
-        decltype(std::declval<T>().getUpLinkLayout()), 
-        decltype(std::declval<T>().getDownLinkLayout())
-    >;
+    using RxLayoutT = decltype(std::declval<T>().getUpLinkLayout());
 
     static constexpr size_t TxDataSize = (layout_bytes_v<TxLayoutT<TxSyncables>>() + ... + 0);
     static constexpr size_t RxDataSize = (layout_bytes_v<RxLayoutT<RxSyncables>>() + ... + 0);
@@ -146,12 +205,13 @@ private:
 
 /**
  * @brief Direction-aware Frame Alias.
+ * Automatically filters types into Downlink and Uplink based on method existence.
  */
-template<bool IsMaster, typename MasterToSlaveStream, typename SlaveToMasterStream>
+template<bool IsMaster, typename... SyncableTypes>
 using DuplexFrame = typename std::conditional_t<
     IsMaster,
-    Frame<true, MasterToSlaveStream, SlaveToMasterStream>, 
-    Frame<false, SlaveToMasterStream, MasterToSlaveStream>
+    Frame<true, FilterTuple_t<std::tuple<SyncableTypes...>, HasDownLinkMethod>, FilterTuple_t<std::tuple<SyncableTypes...>, HasUpLinkMethod>>, 
+    Frame<false, FilterTuple_t<std::tuple<SyncableTypes...>, HasUpLinkMethod>, FilterTuple_t<std::tuple<SyncableTypes...>, HasDownLinkMethod>>
 >;
 
 #endif // FRAME_SHARED_HPP

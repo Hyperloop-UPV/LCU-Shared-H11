@@ -10,10 +10,6 @@ class AirgapBase {
     auto getUpLinkLayout() {
         return std::make_tuple(&airgap_v); 
     }
-
-    auto getDownLinkLayout() {
-        return std::make_tuple();
-    }
 };
 
 #endif // AIRGAP_SHARED_HPP
