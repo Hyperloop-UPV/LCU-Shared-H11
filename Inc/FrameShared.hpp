@@ -90,22 +90,56 @@ public:
     // ===========================================
     // 1. Compile-Time Deduction
     // ===========================================
-    // Note: TxSyncables are already filtered to have getDownLinkLayout()
-    //       RxSyncables are already filtered to have getUpLinkLayout()
+    // For Master: TxSyncables have getDownLinkLayout(), RxSyncables have getUpLinkLayout()
+    // For Slave:  TxSyncables have getUpLinkLayout(), RxSyncables have getDownLinkLayout()
 
+    // Calculate layout size for each element in TX
     template <typename T>
-    using TxLayoutT = decltype(std::declval<T>().getDownLinkLayout());
-
+    static consteval size_t tx_elem_size() {
+        if constexpr (IsMaster) {
+            return layout_bytes_v<decltype(std::declval<T>().getDownLinkLayout())>();
+        } else {
+            return layout_bytes_v<decltype(std::declval<T>().getUpLinkLayout())>();
+        }
+    }
+    
+    // Calculate layout size for each element in RX
     template <typename T>
-    using RxLayoutT = decltype(std::declval<T>().getUpLinkLayout());
+    static consteval size_t rx_elem_size() {
+        if constexpr (IsMaster) {
+            return layout_bytes_v<decltype(std::declval<T>().getUpLinkLayout())>();
+        } else {
+            return layout_bytes_v<decltype(std::declval<T>().getDownLinkLayout())>();
+        }
+    }
+    
+    // Calculate layout count for each element in TX
+    template <typename T>
+    static consteval size_t tx_elem_count() {
+        if constexpr (IsMaster) {
+            return layout_count_v<decltype(std::declval<T>().getDownLinkLayout())>();
+        } else {
+            return layout_count_v<decltype(std::declval<T>().getUpLinkLayout())>();
+        }
+    }
+    
+    // Calculate layout count for each element in RX
+    template <typename T>
+    static consteval size_t rx_elem_count() {
+        if constexpr (IsMaster) {
+            return layout_count_v<decltype(std::declval<T>().getUpLinkLayout())>();
+        } else {
+            return layout_count_v<decltype(std::declval<T>().getDownLinkLayout())>();
+        }
+    }
 
-    static constexpr size_t TxDataSize = (layout_bytes_v<TxLayoutT<TxSyncables>>() + ... + 0);
-    static constexpr size_t RxDataSize = (layout_bytes_v<RxLayoutT<RxSyncables>>() + ... + 0);
+    static constexpr size_t TxDataSize = (tx_elem_size<TxSyncables>() + ... + 0);
+    static constexpr size_t RxDataSize = (rx_elem_size<RxSyncables>() + ... + 0);
     static constexpr size_t TotalSize = std::max(TxDataSize, RxDataSize);
 
     // Node Counts
-    static constexpr size_t TxNodeCount = (layout_count_v<TxLayoutT<TxSyncables>>() + ... + 0);
-    static constexpr size_t RxNodeCount = (layout_count_v<RxLayoutT<RxSyncables>>() + ... + 0);
+    static constexpr size_t TxNodeCount = (tx_elem_count<TxSyncables>() + ... + 0);
+    static constexpr size_t RxNodeCount = (rx_elem_count<RxSyncables>() + ... + 0);
 
 
     // ===========================================
