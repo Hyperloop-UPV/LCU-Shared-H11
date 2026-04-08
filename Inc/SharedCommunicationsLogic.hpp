@@ -23,6 +23,7 @@ struct DefaultCallbacks {
 //   FrameT: Frame type (e.g., LCU_Master::Frame, LCU_Slave::Frame)
 //   SPIInstanceT: SPI wrapper type
 //   CallbacksT: User-provided callbacks (default: DefaultCallbacks)
+//   IsMaster: True for master mode, Flase for Slave
 //   EnableErrorHandling: Track error counter and exponential backoff
 //   MaxErrors: Maximum error counter value (clamping)
 //   EnableTimeout: Use time-based timeout
@@ -31,6 +32,7 @@ template<
     typename FrameT, 
     typename SPIInstanceT, 
     typename CallbacksT = DefaultCallbacks,
+    bool IsMaster = true,
     bool EnableErrorHandling = false,
     uint32_t MaxErrors = 10,
     bool EnableTimeout = false,
@@ -114,7 +116,17 @@ public:
         } else if (send_flag && !waiting_for_ready) {
             // ===== STATE 2: Initiate SPI Transfer =====
             send_flag = false;
-            spi_ptr->transceive(FrameT::tx_buffer, FrameT::rx_buffer, &spi_flag);
+            
+            // Master: Use transceive_DMA with operation flag
+            // Slave: Use transceive which handles DMA internally
+            if constexpr (IsMaster) {
+                // Master mode: explicit DMA with operation flag
+                spi_ptr->transceive_DMA(FrameT::tx_buffer, FrameT::rx_buffer, &spi_flag);
+            } else {
+                // Slave mode: transceive already uses DMA
+                spi_ptr->transceive(FrameT::tx_buffer, FrameT::rx_buffer, &spi_flag);
+            }
+
             CallbacksT::on_spi_start();
 
         } else if (spi_flag) {
@@ -164,7 +176,9 @@ public:
             return false;
         }
         
-        if (FrameT::rx_buffer[FrameT::FRAME_SIZE - 1] != FrameT::END_BYTE) {
+        // Check END_BYTE at the last position using sizeof
+        constexpr size_t frame_size = sizeof(FrameT::rx_buffer);
+        if (FrameT::rx_buffer[frame_size - 1] != FrameT::END_BYTE) {
             return false;
         }
 
