@@ -75,11 +75,21 @@ public:
     }
 
     static void update_tx(volatile bool *flag = nullptr) { 
-        if constexpr (TxNodeCount > 0) MDMA::transfer_list(reinterpret_cast<MDMA::LinkedListNode*>(&tx_node_storage[0]), flag);
+        if constexpr (TxNodeCount > 0) {
+            MDMA::transfer_list(
+                reinterpret_cast<volatile MDMA::LinkedListNode*>(&tx_node_storage[0]),
+                flag
+            );
+        }
     }
 
     static void update_rx(volatile bool *flag = nullptr) { 
-        if constexpr (RxNodeCount > 0) MDMA::transfer_list(reinterpret_cast<MDMA::LinkedListNode*>(&rx_node_storage[0]), flag);
+        if constexpr (RxNodeCount > 0) {
+            MDMA::transfer_list(
+                reinterpret_cast<volatile MDMA::LinkedListNode*>(&rx_node_storage[0]),
+                flag
+            );
+        }
     }
 
 private:
@@ -88,6 +98,9 @@ private:
     static void initDirection(Syncables&... parts) {
         size_t buffer_offset = 0;
         size_t node_idx = 0;
+
+        auto* storage = IsTx ? const_cast<volatile NodeWrapper*>(&tx_node_storage[0])
+                     : const_cast<volatile NodeWrapper*>(&rx_node_storage[0]);
 
         auto processObject = [&](auto& part) {
             // Deduce layout tuple
@@ -115,27 +128,27 @@ private:
         
         // Terminate the linked list
         if (node_idx > 0) {
-             NodeWrapper* storage = IsTx ? tx_node_storage : rx_node_storage;
-             reinterpret_cast<MDMA::LinkedListNode*>(&storage[node_idx - 1])->set_next(nullptr);
+            reinterpret_cast<volatile MDMA::LinkedListNode*>(&storage[node_idx - 1])->set_next(nullptr);
         }
     }
 
     template <bool IsTx, typename T>
     static void createNode(size_t& idx, size_t& offset, T* ptr) {
-        using ValueType = std::remove_pointer_t<T>;
+        using ValueType = T;
         size_t size = sizeof(ValueType);
-        
-        NodeWrapper* storage = IsTx ? tx_node_storage : rx_node_storage;
-        
-        auto* buffer  = IsTx ? tx_buffer : rx_buffer;
 
-        void* src = IsTx ? (void*)ptr : (void*)(buffer + offset);
-        void* dst = IsTx ? (void*)(buffer + offset) : (void*)ptr;
+        auto* storage = IsTx ? reinterpret_cast<volatile NodeWrapper*>(&tx_node_storage[0])
+                             : reinterpret_cast<volatile NodeWrapper*>(&rx_node_storage[0]);
+        auto* buffer = IsTx ? reinterpret_cast<volatile uint8_t*>(&tx_buffer[0])
+                            : reinterpret_cast<volatile uint8_t*>(&rx_buffer[0]);
 
-        MDMA::LinkedListNode* node = new (&storage[idx]) MDMA::LinkedListNode(src, dst, size);
+        void* src = IsTx ? const_cast<void*>(static_cast<const volatile void*>(ptr)) : const_cast<uint8_t*>(buffer + offset);
+        void* dst = IsTx ? const_cast<uint8_t*>(buffer + offset) : const_cast<void*>(static_cast<const volatile void*>(ptr));
+
+        volatile MDMA::LinkedListNode* node = new (const_cast<NodeWrapper*>(&storage[idx])) volatile MDMA::LinkedListNode(src, dst, size);
 
         if (idx > 0) {
-            MDMA::LinkedListNode* prev = reinterpret_cast<MDMA::LinkedListNode*>(&storage[idx - 1]);
+            volatile MDMA::LinkedListNode* prev = reinterpret_cast<volatile MDMA::LinkedListNode*>(&storage[idx - 1]);
             prev->set_next(node->get_node());
         }
 
