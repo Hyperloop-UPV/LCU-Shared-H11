@@ -81,8 +81,13 @@ struct StatusPacket {
     static constexpr uint8_t START_BYTE = 0xAB;
     static constexpr uint8_t END_BYTE = 0xCD;
 
+
+
     uint8_t start_byte;
-    
+    float desired_current1;
+    float desired_current2;
+    float desired_current3;
+    float desired_current4;
     SlaveState slave_state;   // SystemStates enum value
     uint16_t error_code;            // Detailed error code if fault
 
@@ -90,6 +95,10 @@ struct StatusPacket {
     
     StatusPacket() 
         : start_byte(START_BYTE)
+        , desired_current1(0.0f)
+        , desired_current2(0.0f)
+        , desired_current3(0.0f)
+        , desired_current4(0.0f)
         , slave_state(SlaveState::SPI_CONNECTING)
         , error_code(0)
         , end_byte(END_BYTE)
