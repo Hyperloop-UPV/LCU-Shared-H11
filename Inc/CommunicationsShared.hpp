@@ -94,6 +94,11 @@ struct StatusPacket {
     float state3;
     float state4;
 
+    float airgap_local_1;
+    float airgap_local_2;
+    float airgap_local_3;
+    float airgap_local_4;
+
     SlaveState slave_state;   // SystemStates enum value
     uint16_t error_code;            // Detailed error code if fault
 
@@ -110,6 +115,10 @@ struct StatusPacket {
         , state2(0.0f)
         , state3(0.0f)
         , state4(0.0f)
+        , airgap_local_1(0.0f)
+        , airgap_local_2(0.0f)
+        , airgap_local_3(0.0f)
+        , airgap_local_4(0.0f)
         , slave_state(SlaveState::SPI_CONNECTING)
         , error_code(0)
         , end_byte(END_BYTE)
