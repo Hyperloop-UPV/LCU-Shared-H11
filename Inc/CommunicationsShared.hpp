@@ -150,7 +150,7 @@ struct StatusPacket {
         , desired_voltage_2(0.0f)
         , desired_voltage_3(0.0f)
         , desired_voltage_4(0.0f)
-        , target_distance(0.0f),
+        , target_distance(0.0f)
         , A{0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}
         , Ak{0.0f, 0.0f, 0.0f, 0.0f}
         , Bk{0.0f, 0.0f, 0.0f}
