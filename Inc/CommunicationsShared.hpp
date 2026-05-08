@@ -115,6 +115,10 @@ struct StatusPacket {
 
     float target_distance;
 
+    float A[8];
+    float Ak[4];
+    float Bk[3];
+
     SlaveState slave_state;   // SystemStates enum value
     uint16_t error_code;            // Detailed error code if fault
 
@@ -146,7 +150,10 @@ struct StatusPacket {
         , desired_voltage_2(0.0f)
         , desired_voltage_3(0.0f)
         , desired_voltage_4(0.0f)
-        , target_distance(0.0f)
+        , target_distance(0.0f),
+        , A{0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}
+        , Ak{0.0f, 0.0f, 0.0f, 0.0f}
+        , Bk{0.0f, 0.0f, 0.0f}
         , slave_state(SlaveState::SPI_CONNECTING)
         , error_code(0)
         , end_byte(END_BYTE)
