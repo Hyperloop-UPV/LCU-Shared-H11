@@ -135,7 +135,6 @@ struct StatusPacket {
         , airgap_local_2(0.0f)
         , airgap_local_3(0.0f)
         , airgap_local_4(0.0f)
-        , target_distance(0.0f)
         , Fe{0.0f, 0.0f, 0.0f}
         , Fa{0.0f, 0.0f, 0.0f, 0.0f}
         , Ef{0.0f, 0.0f, 0.0f}
@@ -147,6 +146,7 @@ struct StatusPacket {
         , desired_voltage_2(0.0f)
         , desired_voltage_3(0.0f)
         , desired_voltage_4(0.0f)
+        , target_distance(0.0f)
         , slave_state(SlaveState::SPI_CONNECTING)
         , error_code(0)
         , end_byte(END_BYTE)
