@@ -4,28 +4,15 @@
 #include "FrameShared.hpp"
 #include "LPUShared.hpp"
 #include "AirgapShared.hpp"
-#include "CommunicationsShared.hpp"
-#include "FlagsShared.hpp"
-
+#include "StateMachineShared.hpp"
+#include "ControlShared.hpp"
+#include "ReportShared.hpp"
 
 // ============================================
-// Frame Definitions
+// Frame type aliases
 // ============================================
-#ifdef USE_1_DOF
-using Downlink = std::tuple<CommunicationsBase, LPUBase>;
-using Uplink = std::tuple<CommunicationsBase, LPUBase, AirgapBase>;
 
-#elif defined(USE_5_DOF)
-using Downlink = std::tuple<CommunicationsBase,
-                            LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase>;
-using Uplink = std::tuple<CommunicationsBase,
-                          LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase, LPUBase,
-                          AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase, AirgapBase>;
-#endif
-
-template <bool IsMaster>
-using SystemFrame = DuplexFrame<IsMaster, Downlink, Uplink>;
-
-
+template <bool isMaster, typename LPUArray, typename AirgapArray>
+using FrameType = Frame<isMaster, LPUArray, AirgapArray, StateMachineBase, ControlBase, ReportBase>;
 
 #endif // CONFIG_SHARED_HPP

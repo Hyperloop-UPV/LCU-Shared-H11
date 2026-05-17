@@ -18,63 +18,47 @@ consteval size_t layout_count_v() {
     }(std::type_identity<Tuple>{});
 }
 
-template <bool IsMaster, typename TxTuple, typename RxTuple>
-class Frame;
-
-template <bool IsMaster, typename... TxSyncables, typename... RxSyncables>
-class Frame<IsMaster, std::tuple<TxSyncables...>, std::tuple<RxSyncables...>> {
+template <bool IsMaster, typename... Syncables>
+class Frame {
 public:
-    // ===========================================
-    // 1. Compile-Time Deduction
-    // ===========================================
-
     template <typename T>
     using TxLayoutT = std::conditional_t<IsMaster,
-        decltype(std::declval<T>().getDownLinkLayout()), 
-        decltype(std::declval<T>().getUpLinkLayout())
+        decltype(std::declval<T>().get_downlink_layout()),
+        decltype(std::declval<T>().get_uplink_layout())
     >;
 
     template <typename T>
-    using RxLayoutT = std::conditional_t<IsMaster, 
-        decltype(std::declval<T>().getUpLinkLayout()), 
-        decltype(std::declval<T>().getDownLinkLayout())
+    using RxLayoutT = std::conditional_t<IsMaster,
+        decltype(std::declval<T>().get_uplink_layout()),
+        decltype(std::declval<T>().get_downlink_layout())
     >;
 
-    static constexpr size_t TxDataSize = (layout_bytes_v<TxLayoutT<TxSyncables>>() + ... + 0);
-    static constexpr size_t RxDataSize = (layout_bytes_v<RxLayoutT<RxSyncables>>() + ... + 0);
-    static constexpr size_t TotalSize = std::max(TxDataSize, RxDataSize);
+    static constexpr uint8_t START_BYTE = 0xAB;
+    static constexpr uint8_t END_BYTE = 0xCD;
 
-    // Node Counts
-    static constexpr size_t TxNodeCount = (layout_count_v<TxLayoutT<TxSyncables>>() + ... + 0);
-    static constexpr size_t RxNodeCount = (layout_count_v<RxLayoutT<RxSyncables>>() + ... + 0);
+    static constexpr size_t TxDataSize = (layout_bytes_v<TxLayoutT<Syncables>>() + ... + 0);
+    static constexpr size_t RxDataSize = (layout_bytes_v<RxLayoutT<Syncables>>() + ... + 0);
+    static constexpr size_t TotalSize = std::max(TxDataSize, RxDataSize) + 2;
 
+    static constexpr size_t TxNodeCount = (layout_count_v<TxLayoutT<Syncables>>() + ... + 0);
+    static constexpr size_t RxNodeCount = (layout_count_v<RxLayoutT<Syncables>>() + ... + 0);
 
-    // ===========================================
-    // 2. Storage
-    // ===========================================
+    alignas(32) D1_NC static inline uint8_t tx_buffer[TotalSize];
+    alignas(32) D1_NC static inline uint8_t rx_buffer[TotalSize];
 
-    alignas(32) D1_NC static inline uint8_t tx_buffer[TotalSize]; // Cache line alignment just in case
-    alignas(32) D1_NC static inline uint8_t rx_buffer[TotalSize]; // Cache line alignment just in case
-
-    struct NodeWrapper { // Mdma::LinkedListNode doesn't have a default constructor
+    struct NodeWrapper {
         alignas(alignof(MDMA::LinkedListNode)) uint8_t data[sizeof(MDMA::LinkedListNode)];
     };
 
-    // Ensure array size is at least 1 to satisfy C++ standards, may change later to something else
-    static inline D1_NC NodeWrapper tx_node_storage[TxNodeCount > 0 ? TxNodeCount : 1];
-    static inline D1_NC NodeWrapper rx_node_storage[RxNodeCount > 0 ? RxNodeCount : 1];
+    static inline D1_NC NodeWrapper tx_node_storage[TxNodeCount + 2];
+    static inline D1_NC NodeWrapper rx_node_storage[RxNodeCount + 2];
 
-
-    // ===========================================
-    // 3. Logic
-    // ===========================================
-
-    static void init(TxSyncables&... tx_parts, RxSyncables&... rx_parts) {
-        if constexpr (TxNodeCount > 0) initDirection<true>(tx_parts...);
-        if constexpr (RxNodeCount > 0) initDirection<false>(rx_parts...);
+    static void init(Syncables&... parts) {
+        if constexpr (TxNodeCount > 0) init_direction<true>(parts...);
+        if constexpr (RxNodeCount > 0) init_direction<false>(parts...);
     }
 
-    static void update_tx(volatile bool *flag = nullptr) { 
+    static void update_tx(volatile bool* flag = nullptr) {
         if constexpr (TxNodeCount > 0) {
             MDMA::transfer_list(
                 reinterpret_cast<volatile MDMA::LinkedListNode*>(&tx_node_storage[0]),
@@ -83,7 +67,7 @@ public:
         }
     }
 
-    static void update_rx(volatile bool *flag = nullptr) { 
+    static void update_rx(volatile bool* flag = nullptr) {
         if constexpr (RxNodeCount > 0) {
             MDMA::transfer_list(
                 reinterpret_cast<volatile MDMA::LinkedListNode*>(&rx_node_storage[0]),
@@ -92,79 +76,78 @@ public:
         }
     }
 
+    static bool validate() {
+        return rx_buffer[0] == START_BYTE && rx_buffer[TotalSize - 1] == END_BYTE;
+    }
+
 private:
-   
-    template <bool IsTx, typename... Syncables>
-    static void initDirection(Syncables&... parts) {
+    template <bool IsTx, typename... Parts>
+    static void init_direction(Parts&... parts) {
         size_t buffer_offset = 0;
         size_t node_idx = 0;
 
-        auto* storage = IsTx ? const_cast<volatile NodeWrapper*>(&tx_node_storage[0])
-                     : const_cast<volatile NodeWrapper*>(&rx_node_storage[0]);
+        auto* storage = IsTx ? tx_node_storage : rx_node_storage;
+        auto* buffer = IsTx ? tx_buffer : rx_buffer;
 
-        auto processObject = [&](auto& part) {
-            // Deduce layout tuple
+        if constexpr (IsTx) {
+            new (const_cast<NodeWrapper*>(&storage[node_idx])) volatile MDMA::LinkedListNode(
+                const_cast<uint8_t*>(&START_BYTE), const_cast<uint8_t*>(buffer), 1);
+            node_idx++;
+        } else {
+            new (const_cast<NodeWrapper*>(&storage[node_idx])) volatile MDMA::LinkedListNode(
+                const_cast<uint8_t*>(buffer), const_cast<uint8_t*>(&START_BYTE), 1);
+            node_idx++;
+        }
+
+        auto process_object = [&](auto& part) {
             auto layout = [&]() {
                 if constexpr (IsTx) {
-                    if constexpr (IsMaster) return part.getDownLinkLayout();
-                    else return part.getUpLinkLayout();
+                    if constexpr (IsMaster) return part.get_downlink_layout();
+                    else return part.get_uplink_layout();
                 } else {
-                    if constexpr (IsMaster) return part.getUpLinkLayout();
-                    else return part.getDownLinkLayout();
+                    if constexpr (IsMaster) return part.get_uplink_layout();
+                    else return part.get_downlink_layout();
                 }
             }();
 
-            // Unpack tuple and generate nodes
             std::apply([&](auto*... args) {
-                ((createNode<IsTx>(
-                    node_idx, 
-                    buffer_offset, 
-                    args
-                 )), ...);
+                ((create_node<IsTx>(node_idx, buffer_offset, args)), ...);
             }, layout);
         };
 
-        (processObject(parts), ...);
-        
-        // Terminate the linked list
-        if (node_idx > 0) {
-            reinterpret_cast<volatile MDMA::LinkedListNode*>(&storage[node_idx - 1])->set_next(nullptr);
+        (process_object(parts), ...);
+
+        if constexpr (IsTx) {
+            new (const_cast<NodeWrapper*>(&storage[node_idx])) volatile MDMA::LinkedListNode(
+                const_cast<uint8_t*>(&END_BYTE), const_cast<uint8_t*>(buffer + TotalSize - 1), 1);
+            node_idx++;
+        } else {
+            new (const_cast<NodeWrapper*>(&storage[node_idx])) volatile MDMA::LinkedListNode(
+                const_cast<uint8_t*>(buffer + TotalSize - 1), const_cast<uint8_t*>(&END_BYTE), 1);
+            node_idx++;
         }
+
+        reinterpret_cast<volatile MDMA::LinkedListNode*>(&storage[node_idx - 1])->set_next(nullptr);
     }
 
     template <bool IsTx, typename T>
-    static void createNode(size_t& idx, size_t& offset, T* ptr) {
-        using ValueType = T;
-        size_t size = sizeof(ValueType);
+    static void create_node(size_t& idx, size_t& offset, T* ptr) {
+        size_t size = sizeof(T);
 
-        auto* storage = IsTx ? reinterpret_cast<volatile NodeWrapper*>(&tx_node_storage[0])
-                             : reinterpret_cast<volatile NodeWrapper*>(&rx_node_storage[0]);
-        auto* buffer = IsTx ? reinterpret_cast<volatile uint8_t*>(&tx_buffer[0])
-                            : reinterpret_cast<volatile uint8_t*>(&rx_buffer[0]);
+        auto* storage = IsTx ? tx_node_storage : rx_node_storage;
+        auto* buffer = IsTx ? tx_buffer + 1 : rx_buffer + 1;
 
         void* src = IsTx ? const_cast<void*>(static_cast<const volatile void*>(ptr)) : const_cast<uint8_t*>(buffer + offset);
         void* dst = IsTx ? const_cast<uint8_t*>(buffer + offset) : const_cast<void*>(static_cast<const volatile void*>(ptr));
 
         volatile MDMA::LinkedListNode* node = new (const_cast<NodeWrapper*>(&storage[idx])) volatile MDMA::LinkedListNode(src, dst, size);
 
-        if (idx > 0) {
-            volatile MDMA::LinkedListNode* prev = reinterpret_cast<volatile MDMA::LinkedListNode*>(&storage[idx - 1]);
-            prev->set_next(node->get_node());
-        }
+        volatile MDMA::LinkedListNode* prev = reinterpret_cast<volatile MDMA::LinkedListNode*>(&storage[idx - 1]);
+        prev->set_next(node->get_node());
 
         offset += size;
         idx++;
     }
 };
-
-/**
- * @brief Direction-aware Frame Alias.
- */
-template<bool IsMaster, typename MasterToSlaveStream, typename SlaveToMasterStream>
-using DuplexFrame = typename std::conditional_t<
-    IsMaster,
-    Frame<true, MasterToSlaveStream, SlaveToMasterStream>, 
-    Frame<false, SlaveToMasterStream, MasterToSlaveStream>
->;
 
 #endif // FRAME_SHARED_HPP
