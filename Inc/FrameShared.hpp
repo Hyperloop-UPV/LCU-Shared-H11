@@ -120,12 +120,15 @@ private:
         if constexpr (IsTx) {
             new (const_cast<NodeWrapper*>(&storage[node_idx])) volatile MDMA::LinkedListNode(
                 const_cast<uint8_t*>(&END_BYTE), const_cast<uint8_t*>(buffer + TotalSize - 1), 1);
-            node_idx++;
         } else {
             new (const_cast<NodeWrapper*>(&storage[node_idx])) volatile MDMA::LinkedListNode(
                 const_cast<uint8_t*>(buffer + TotalSize - 1), const_cast<uint8_t*>(&END_BYTE), 1);
-            node_idx++;
         }
+
+        reinterpret_cast<volatile MDMA::LinkedListNode*>(&storage[node_idx - 1])
+            ->set_next(reinterpret_cast<volatile MDMA::LinkedListNode*>(&storage[node_idx])->get_node());
+
+        node_idx++;
 
         reinterpret_cast<volatile MDMA::LinkedListNode*>(&storage[node_idx - 1])->set_next(nullptr);
     }
