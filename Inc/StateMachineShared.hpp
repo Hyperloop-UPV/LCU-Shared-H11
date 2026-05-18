@@ -12,10 +12,11 @@ class StateMachineBase {
     }
 
     auto get_downlink_layout() {
-        return std::make_tuple(&desired_state);
+        return std::make_tuple(&desired_state, &lpu_bitmask);
     }
 
     volatile SlaveState desired_state = SlaveState::IDLE;
+    volatile uint16_t lpu_bitmask = 0;
     volatile SlaveState current_state = SlaveState::SPI_CONNECTING;
 };
 
