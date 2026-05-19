@@ -40,6 +40,10 @@ public:
 
     bool is_valid() const { return has_report; }
 
+    uint32_t get_seq_num() const { return seq_num; }
+
+    const volatile Diagnostics::DiagnosticRecord& get_record() const { return record; }
+
 private:
     volatile Diagnostics::DiagnosticRecord record;
     volatile uint32_t seq_num{0};
