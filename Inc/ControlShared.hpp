@@ -55,6 +55,8 @@ public:
         float RefZ;
         float RefCurrent;
         bool ramping;
+        bool cinema;
+        float cinema_current;
     };
 
     volatile Output output{};
