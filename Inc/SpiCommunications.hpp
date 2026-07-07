@@ -21,7 +21,7 @@ public:
         if (!operation_flag) {
             operation_flag = true;
             receive_flag = true;
-            if constexpr (spi_timeout_limit > 0) timeout_counter = 0;
+            if constexpr (spi_timeout_limit > 0) timeout_counter = Scheduler::get_global_tick();
             FrameType::update_tx(&send_flag);
 
         } else if (send_flag && receive_flag && SpiReady()) {
@@ -47,7 +47,7 @@ public:
             if (FrameType::validate()) {
                 FrameType::update_rx(&receive_flag);
                 FrameType::update_tx(&send_flag);
-                if constexpr (spi_timeout_limit > 0) timeout_counter = 0;
+                if constexpr (spi_timeout_limit > 0) timeout_counter = Scheduler::get_global_tick();
                 if constexpr (max_errors > 0) {
                     if (error_count > 0) error_count--;
                 }
@@ -61,7 +61,10 @@ public:
         }
 
         if constexpr (spi_timeout_limit > 0) {
-            if (operation_flag && (Scheduler::get_global_tick() > timeout_counter + spi_timeout_limit)) {
+            if (operation_flag && (Scheduler::get_global_tick() - timeout_counter >= spi_timeout_limit)) {
+                if (!has_ever_connected) {
+                    return; // Don't trigger timeout if we haven't connected yet
+                }
                 error_occurred();
                 OnTimeout();
             }
@@ -72,7 +75,7 @@ public:
         WARNING("SPI Communication Error Occurred");
         if constexpr (max_errors > 0) {
             error_count++;
-            if (error_count > max_errors) {
+            if (error_count >= max_errors) {
                 error_count = max_errors;
                 OnMaxErrors();
             }
@@ -102,7 +105,7 @@ private:
     volatile bool operation_flag = false;
 
     uint32_t error_count = 0;
-    uint32_t timeout_counter = 0;
+    uint64_t timeout_counter = 0;
     bool has_ever_connected = false;
 };
 
