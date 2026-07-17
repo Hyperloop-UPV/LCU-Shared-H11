@@ -17,7 +17,7 @@ public:
         float Voltages[10];
         float GapsLocales[4];
         float Estados[5];
-        float CorrienteReferencia[4];
+        float CorrienteReferencia[10];
         float Fe[3];
         float Fa[4];
         float Ef[3];
@@ -30,6 +30,8 @@ public:
         float A[8];
         float Ak[4];
         float Bk[3];
+        float PI_Integrator_HEMS[4];
+        float PI_Integrator_EMS[6];
 
         void clear() volatile {
             std::fill(std::begin(Voltages), std::end(Voltages), 0.0f);
@@ -48,6 +50,8 @@ public:
             std::fill(std::begin(A), std::end(A), 0.0f);
             std::fill(std::begin(Ak), std::end(Ak), 0.0f);
             std::fill(std::begin(Bk), std::end(Bk), 0.0f);
+            std::fill(std::begin(PI_Integrator_HEMS), std::end(PI_Integrator_HEMS), 0.0f);
+            std::fill(std::begin(PI_Integrator_EMS), std::end(PI_Integrator_EMS), 0.0f);
         }
     };
 
